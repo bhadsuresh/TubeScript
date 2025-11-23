@@ -756,13 +756,19 @@
                 	headers: { 'Content-Type': 'application/json' },
                 	body: JSON.stringify({ url: url })
                 	});
-			if (!response.ok) throw new Error('Network response was not ok');
+
+			if (!response.ok) {
+                    // Try to get the error message from the backend
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server Error: ${response.status}`);
+                	}
+
                 	const data = await response.json();
                 	currentData = data.transcript; 
                 // -------------------------------------------------------------
 
                 // Fetch logic (Simulated delay)
-                await new Promise(resolve => setTimeout(resolve, 1500)); 
+                //await new Promise(resolve => setTimeout(resolve, 1500)); 
                 
 
                 // SUCCESS - DEDUCT CREDIT
