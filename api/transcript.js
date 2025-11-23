@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   // 1. CORS Configuration (Allow requests from your frontend)
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Replace '*' with your actual domain in production
+  res.setHeader('Access-Control-Allow-Origin', 'https://tubescript-ten.vercel.app/'); // Replace '*' with your actual domain in production
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
