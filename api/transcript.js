@@ -1,20 +1,18 @@
 export default async function handler(req, res) {
-  // 1. CORS Configuration (Allow requests from your frontend)
+  // 1. CORS Configuration
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', 'https://tubescript-ten.vercel.app/'); // Replace '*' with your actual domain in production
+  res.setHeader('Access-Control-Allow-Origin', 'https://tubescript-ten.vercel.app/'); 
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Handle Preflight Options
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -25,22 +23,25 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'YouTube URL is required' });
   }
 
+  // --- DEBUGGING CHECK ---
+  if (!process.env.RAPIDAPI_KEY) {
+    console.error("ERROR: RAPIDAPI_KEY environment variable is missing in Vercel.");
+    return res.status(500).json({ error: 'Server Configuration Error: API Key missing.' });
+  }
+
   try {
-    // 2. Extract Video ID from URL
     const videoId = extractVideoId(url);
     if (!videoId) {
       return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
-    // 3. RapidAPI Configuration
-    // IMPORTANT: Move these to Environment Variables in Vercel dashboard for security
     const rapidApiKey = process.env.RAPIDAPI_KEY; 
-    const rapidApiHost = 'youtube-transcripts.p.rapidapi.com'; // This depends on exactly which API you subscribed to
+    const rapidApiHost = 'youtube-transcript-api1.p.rapidapi.com'; 
 
-    // 4. Call RapidAPI
-    // Note: We use the native fetch API (Node 18+)
     const apiUrl = `https://${rapidApiHost}/transcript?videoId=${videoId}`;
     
+    console.log(`Fetching transcript for video: ${videoId}`);
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
@@ -51,42 +52,35 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("RapidAPI Error:", errorText);
-      throw new Error(`API responded with status ${response.status}`);
+      console.error("RapidAPI External Error:", errorText);
+      // Pass the actual upstream error message to the frontend for better debugging
+      throw new Error(`RapidAPI Failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
 
-    // 5. Normalize Data for Frontend
-    // Different APIs return different structures. 
-    // The frontend expects: [{ text: string, start: number, duration: number }]
-    // This block ensures the data matches that format.
-    
     let formattedTranscript = [];
-
-    // Check if the API returned 'body', 'content', or just an array
     const rawTranscript = data.body || data.content || data;
 
     if (Array.isArray(rawTranscript)) {
       formattedTranscript = rawTranscript.map(item => ({
-        text: item.text || item.snippet, // Some APIs use 'snippet' instead of 'text'
+        text: item.text || item.snippet,
         start: parseFloat(item.start || item.startTime),
         duration: parseFloat(item.dur || item.duration)
       }));
     } else {
-        throw new Error("Unexpected API response format");
+        console.error("Unexpected Data Structure:", JSON.stringify(data));
+        throw new Error("API returned unexpected data format. Check Function Logs.");
     }
 
-    // 6. Return Data
     return res.status(200).json({ transcript: formattedTranscript });
 
   } catch (error) {
-    console.error('Server Error:', error);
-    return res.status(500).json({ error: 'Failed to fetch transcript. The video might not have captions.' });
+    console.error('Handler Critical Error:', error.message);
+    return res.status(500).json({ error: error.message });
   }
 }
 
-// --- Helper Function ---
 function extractVideoId(url) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
