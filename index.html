@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Meta Data -->
+    <title>TubeScript | Instant YouTube Transcript Generator SaaS</title>
+    <meta name="description" content="Convert YouTube videos to text instantly. Download transcripts in TXT, SRT, or JSON formats. The best tool for content creators, students, and developers.">
+    <meta name="keywords" content="youtube transcript, video to text, srt generator, youtube api, transcript downloader">
+    <meta name="author" content="TubeScript SaaS">
+    
+    <!-- Open Graph for Social Sharing -->
+    <meta property="og:title" content="TubeScript - YouTube to Text Generator">
+    <meta property="og:description" content="Get accurate transcripts, subtitles, and summaries from any YouTube video in seconds.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.tubescript.app">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .gradient-text { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #DC2626, #991B1B); }
+        .transcript-scroll::-webkit-scrollbar { width: 8px; }
+        .transcript-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .transcript-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        .transcript-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #DC2626; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* License Specific Utilities */
+        .license-badge { cursor: pointer; transition: all 0.2s; }
+        .input-disabled { opacity: 0.6; pointer-events: none; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-text" class="text-red-600 w-8 h-8"></i>
+                    <span class="font-bold text-xl tracking-tight">TubeScript</span>
+                </div>
+                
+                <div class="hidden md:flex space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-red-600 transition">Features</a>
+                    <a href="#pricing" class="text-gray-600 hover:text-red-600 transition">Pricing</a>
+		    <a href="#UseCases" class="text-gray-600 hover:text-red-600 transition">Use Cases</a>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="open-license-modal-btn" class="license-badge flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        <span id="badge-icon"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></span>
+                        <span id="badge-text">Loading...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="pt-32 pb-20 lg:pt-20 lg:pb-28 px-4 overflow-hidden">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
+                Turn YouTube Videos into <br>
+                <span class="gradient-text">Perfect Text Transcripts</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed" style="margin-bottom:10px;">
+                Extract subtitles, generate blog posts, and analyze video content in seconds. 
+                The ultimate tool for creators, students, and developers.
+	    </p>
+	   
+	    	<p style="margin-bottom:5px; font-size:20px; color:#800000;"> 👇Try Before You Buy!</p>
+	    
+            <div id="app-interface" class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-w-3xl mx-auto transform transition-all hover:shadow-red-100/50">
+                
+                <div id="cta-box" class="hidden bg-red-50 border-l-4 border-red-500 p-4 text-left border-b border-gray-100">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i data-lucide="alert-circle" class="h-5 w-5 text-red-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-bold text-red-800" id="cta-title">License Required</p>
+                            <p class="text-sm text-red-700 mt-1" id="cta-message">Your credits are over.</p>
+                            <div class="mt-2">
+                                <button onclick="document.getElementById('license-modal').classList.remove('hidden')" class="text-sm font-medium text-red-600 hover:text-red-500 underline">
+                                    Manage License / Subscribe &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 md:p-8 bg-gray-50 border-b border-gray-100">
+                    <label class="block text-left text-sm font-semibold text-gray-700 mb-2">Video URL</label>
+                    <div class="relative flex items-center">
+                        <i data-lucide="link" class="absolute left-4 text-gray-400 w-5 h-5"></i>
+                        <input type="text" id="videoUrl" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            class="w-full pl-12 pr-36 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none transition text-gray-800 bg-white"
+                        >
+                        <button id="generateBtn" onclick="generateTranscript()" class="absolute right-2 top-2 bottom-2 bg-red-600 text-white px-6 rounded-lg font-medium hover:bg-red-700 transition flex items-center gap-2">
+                            <span id="btnText">Generate</span>
+                            <div id="btnLoader" class="loader hidden"></div>
+                        </button>
+                    </div>
+                    <p id="errorMsg" class="text-red-500 text-sm text-left mt-2 hidden">Please enter a valid YouTube URL.</p>
+                </div>
+
+                <div id="resultsArea" class="hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-center px-6 py-3 bg-white border-b border-gray-100 gap-4">
+                        <div class="flex items-center gap-4 text-sm text-gray-500">
+                            <div class="flex items-center gap-1"><i data-lucide="clock" class="w-4 h-4"></i><span id="metaDuration">--:--</span></div>
+                            <div class="flex items-center gap-1"><i data-lucide="align-left" class="w-4 h-4"></i><span id="metaWords">0 words</span></div>
+                        </div>
+                        <div class="flex bg-gray-100 p-1 rounded-lg">
+                            <button onclick="switchTab('read')" id="tab-read" class="px-4 py-1.5 rounded-md text-sm font-medium bg-white text-red-600 shadow-sm transition-all">Read</button>
+                            <button onclick="switchTab('srt')" id="tab-srt" class="px-4 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-all">Timestamped</button>
+                            <button onclick="switchTab('json')" id="tab-json" class="px-4 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-all">JSON</button>
+                        </div>
+                    </div>
+                    <div class="relative h-96 bg-gray-50">
+                        <button onclick="copyToClipboard()" class="absolute top-4 right-4 z-10 bg-white border border-gray-200 text-gray-700 p-2 rounded-lg shadow-sm hover:bg-gray-50 transition tooltip" title="Copy to Clipboard"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                        <div id="outputContent" class="w-full h-full p-6 overflow-y-auto transcript-scroll text-left text-gray-800 leading-7 whitespace-pre-wrap font-sans"></div>
+                    </div>
+                    <div class="p-4 bg-white border-t border-gray-200 flex justify-end gap-3">
+                        <button onclick="downloadFile('txt')" class="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition"><i data-lucide="download" class="w-4 h-4"></i> .TXT</button>
+                        <button onclick="downloadFile('srt')" class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"><i data-lucide="download" class="w-4 h-4"></i> .SRT</button>
+                    </div>
+                </div>
+
+                <div id="placeholderState" class="p-12 text-center bg-gray-50/50">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4"><i data-lucide="youtube" class="w-8 h-8 text-red-600"></i></div>
+                    <h3 class="text-lg font-medium text-gray-900">Ready to Transcribe</h3>
+                    <p class="text-gray-500 mt-1">Paste a link above to extract text magically.</p>
+                </div>
+            </div>
+            </div>
+    </section>
+    
+        <!-- Features Section -->
+    <section id="features" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900">Everything you need</h2>
+                <p class="mt-4 text-gray-600">Simple, powerful features for content professionals.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="zap" class="text-red-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Instant Extraction</h3>
+                    <p class="text-gray-600">No waiting. Fetch captions instantly without watching the video.</p>
+                </div>
+                <!-- Feature 2 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="file-json" class="text-blue-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Developer Friendly</h3>
+                    <p class="text-gray-600">Export in JSON format or raw text. Perfect for feeding into LLMs like ChatGPT.</p>
+                </div>
+                <!-- Feature 3 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Smart Formatting</h3>
+                    <p class="text-gray-600">We remove timestamps and line breaks to give you clean, readable paragraphs.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900">Simple Pricing</h2>
+                <p class="mt-4 text-gray-600">Start with 3 Free Transcripts. Upgrade for more.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="border border-gray-200 rounded-2xl p-8 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900">Free Trial</h3>
+                    <div class="my-4 flex items-baseline"><span class="text-4xl font-bold text-gray-900">$0</span></div>
+                    <ul class="space-y-4 mb-8 flex-1">
+                        <li class="flex items-center text-gray-600"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> 3 Free Transcripts</li>
+                        <li class="flex items-center text-gray-600"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> All Formats</li>
+                    </ul>
+                </div>
+                <div class="border-2 border-red-600 rounded-2xl p-8 flex flex-col relative shadow-xl">
+                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide">PRO</div>
+                    <h3 class="text-lg font-semibold text-gray-900">Creator Pro </h3>
+                    <div class="my-4 flex items-baseline"><span class="text-gray-500 ml-1">starts at </span><span class="text-4xl font-bold text-gray-900">$6</span><span class="text-gray-500 ml-1">/mo</span></div>
+                    <ul class="space-y-4 mb-8 flex-1">
+                        <li class="flex items-center text-gray-900 font-medium"><i data-lucide="check" class="w-5 h-5 text-red-600 mr-2"></i>  500 Transcripts</li>
+                       
+                        <li class="flex items-center text-gray-900 font-medium"><i data-lucide="check" class="w-5 h-5 text-red-600 mr-2"></i> No Ads</li>
+			<li class="flex items-center text-gray-900 font-medium"><i data-lucide="check" class="w-5 h-5 text-red-600 mr-2"></i> .SRT & .JSON Export</li>
+			<li class="flex items-center text-gray-900 font-medium"><i data-lucide="check" class="w-5 h-5 text-red-600 mr-2"></i> Remove Timestamps</li>
+ 			<li class="flex items-center text-gray-900 font-medium"><i data-lucide="check" class="w-5 h-5 text-red-600 mr-2"></i> Priority Processing</li>
+                    </ul>
+                    <button onclick="document.getElementById('license-modal').classList.remove('hidden')" class="block w-full py-3 px-4 bg-red-600 text-white text-center rounded-xl font-medium hover:bg-red-700 transition">Get Started</button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Use Cases Section -->
+    <section id="UseCases" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900">Use Cases of TubeScript</h2>
+                <p class="mt-4 text-gray-600">TubeScript SaaS can be used for a variety of use cases, including:</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Use Case 1 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="zap" class="text-red-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Content Creation</h3>
+                    <p class="text-gray-600">Extract and summarize YouTube video transcripts to generate concise content for blogs, articles, or social media posts.</p>
+                </div>
+                <!-- Use Case 2 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="file-json" class="text-blue-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">SEO Optimization</h3>
+                    <p class="text-gray-600">Use video transcripts to identify keywords and create SEO-friendly written content that aligns with the video's theme.</p>
+                </div>
+                <!-- Use Case 3 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Market Research</h3>
+                    <p class="text-gray-600">Analyze video discussions and topics to gain insights into audience preferences, trends, and emerging ideas in specific industries or niches.</p>
+                </div>
+		<!-- Use Case 4 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Sentiment Analysis</h3>
+                    <p class="text-gray-600">Perform sentiment analysis on transcripts to understand audience reactions to topics, products, or events discussed in videos.</p>
+                </div>
+		<!-- Use Case 5 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Language Learning</h3>
+                    <p class="text-gray-600">Convert YouTube transcripts into educational materials, or create text-based resources to make video content more accessible for diverse audiences.</p>
+                </div>
+		<!-- Use Case 6 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Video Indexing</h3>
+                    <p class="text-gray-600">Build tools to enable search functionality across video libraries by indexing transcript text, making it easier to locate relevant content.</p>
+                </div>
+		<!-- Use Case 7 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Data-Centric Applications</h3>
+                    <p class="text-gray-600">Integrate video transcripts into applications or workflows for generating insights, training AI models, or automating content curation tasks.</p>
+                </div>
+		<!-- Use Case 8 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="check-circle" class="text-green-600 w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Educational Research</h3>
+                    <p class="text-gray-600">Use transcripts to analyze trends, study discourse on specific topics, or gather data for linguistic or cultural studies.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <div id="license-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-100">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Subscription Management</h3>
+                        <button onclick="document.getElementById('license-modal').classList.add('hidden')" type="button" class="text-gray-400 hover:text-gray-500">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-6">
+                            <label class="block text-xs font-semibold text-indigo-600 uppercase tracking-wide">Your Unique User ID</label>
+                            <p id="unique-user-id-display" class="text-lg font-mono font-bold text-gray-900 mt-1 select-all">Loading...</p>
+                            <p class="text-xs text-indigo-400 mt-1">Include this ID when emailing payment proof.</p>
+                        </div>
+
+                        <div class="mb-6">
+                            <h4 class="text-sm font-bold text-gray-900 mb-2">How to Subscribe:</h4>
+                            <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1 mb-4">
+                                <li>Select a Tier below.</li>
+                                <li>Complete payment via PayPal.</li>
+                                <li>Email receipt & User ID to: <span class="text-blue-600 font-medium">bhadsuresh@gmail.com</span></li>
+                                <li>We will email you a License Key.</li>
+                            </ol>
+                            
+                            <div class="space-y-3">
+                                <label class="block text-sm font-medium text-gray-700">Select Plan</label>
+                                <select id="tier-select" onchange="updatePaypalButton()" class="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm border shadow-sm">
+                                    </select>
+                            </div>
+                            
+                            <div id="paypal-btn-container" class="mt-4 flex justify-center"></div>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-5">
+                            <label class="block text-sm font-medium text-gray-900 mb-2">Activate License</label>
+                            <input type="text" id="license-key-input" placeholder="Paste your License Key here..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm border p-2">
+                            <p id="validation-message" class="mt-2 text-sm text-gray-500 min-h-[20px]"></p>
+                            <button id="activate-subscription-btn" class="mt-3 inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                                Activate Subscription
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-300 py-12">
+	        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="file-text" class="text-white w-6 h-6"></i>
+                    <span class="font-bold text-xl text-white">TubeScript</span>
+                </div>
+                <p class="text-gray-400 max-w-sm">
+                    The easiest way to convert YouTube videos to text. Built for creators, by creators.
+                </p>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-4">Product</h4>
+                <ul class="space-y-2">
+                    <li><a href="#features" class="hover:text-white transition">Features</a></li>
+                    <li><a href="#pricing" class="hover:text-white transition">Pricing</a></li>
+                    <li><a href="#UseCases" class="hover:text-white transition">Use Cases</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-4">Legal</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-gray-800 text-sm text-gray-500 text-center">
+            © 2025 TubeScript SaaS. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // State Management for App
+        let currentData = null;
+        let activeTab = 'read';
+
+        // -------------------------------------------------------------
+        // LICENSE MANAGEMENT SYSTEM
+        // -------------------------------------------------------------
+        
+        // 1. Constants & Obfuscated Secret Key
+        // Storing secret in char codes to prevent simple grep
+        const _sParts = [77,121,83,117,112,101,114,83,101,99,114,101,116,76,105,99,101,110,115,105,110,103,75,101,121,33]; 
+        const getSecret = () => String.fromCharCode(..._sParts); 
+
+        const GEOLIC_KEY = 'tubescript_lic_data';
+        const QUERIES_FREE_TRIAL = 3; 
+
+        // Tiers Configuration
+        const SUBSCRIPTION_TIERS = {
+            500: 6.00,
+            1000: 8.99,
+            1500: 14.99,
+            2000: 19.99,
+            2500: 24.99,
+            3000: 29.00,
+            3500: 34.00,
+            4000: 38.99,
+            4500: 43.50,
+            5000: 49.50,
+            6000: 59.50,
+            7000: 69.50,
+            8000: 78.99,
+            9000: 85.99,
+            10000: 95.99
+        };
+
+        let licenseStatus = {
+            uniqueUserId: null,
+            maxQueries: 0,
+            queriesLeft: 0, 
+            proEnd: null, 
+            isPro: false,
+            status: 'LOADING'
+        };
+
+        // 2. Crypto Helpers
+        function arrayBufferToBase64Url(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+            let base64 = btoa(binary);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function generateHash(data, secret) {
+            const encoder = new TextEncoder();
+            const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+            const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+            return arrayBufferToBase64Url(signature);
+        }
+
+        const validateLicenseKey = async (licenseKey, uniqueUserId, secretKey) => {
+            try {
+                const [payloadAndDatePart, userHashBase64Url] = licenseKey.split('.');
+                if (!payloadAndDatePart || !userHashBase64Url) return null;
+                
+                const parts = payloadAndDatePart.split('|');
+                if (parts.length < 3) return null;
+
+                const licenseUserId = parts[0];
+                const expiryDateStr = parts[1];
+                const maxQueries = parseInt(parts[2]);
+
+                if (licenseUserId !== uniqueUserId) return null;
+                
+                const expiryDate = new Date(expiryDateStr);
+                if (isNaN(expiryDate.getTime())) return null;
+                
+                const today = new Date(); today.setHours(0,0,0,0);
+                if (expiryDate.getTime() < today.getTime()) return null; 
+                // Note: We check if tier exists in defined tiers
+                if (!Object.keys(SUBSCRIPTION_TIERS).map(Number).includes(maxQueries)) return null;
+
+                const dataToSignStr = `${licenseUserId}|${expiryDateStr}|${maxQueries}`; 
+                const generatedHashBase64Url = await generateHash(dataToSignStr, secretKey);
+
+                if (generatedHashBase64Url === userHashBase64Url) {
+                    return { expiryDate, maxQueries }; 
+                }
+                return null;
+            } catch (e) {
+                console.error("License validation error:", e);
+                return null;
+            }
+        };
+
+        // 3. Storage & Logic
+        const getLicenseData = () => {
+            const data = localStorage.getItem(GEOLIC_KEY);
+            if (data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    parsed.proEnd = parsed.proEnd ? new Date(parsed.proEnd) : null;
+                    parsed.maxQueries = typeof parsed.maxQueries === 'number' ? parsed.maxQueries : QUERIES_FREE_TRIAL;
+                    parsed.queriesLeft = typeof parsed.queriesLeft === 'number' ? parsed.queriesLeft : QUERIES_FREE_TRIAL;
+                    return parsed;
+                } catch (e) {
+                    localStorage.removeItem(GEOLIC_KEY);
+                    return {};
+                }
+            }
+            return {};
+        };
+
+        const saveLicenseData = (data) => {
+            const serializableData = {
+                ...data,
+                proEnd: data.proEnd ? data.proEnd.toISOString() : null,
+                queriesLeft: data.queriesLeft || 0,
+                maxQueries: data.maxQueries || 0
+            };
+            localStorage.setItem(GEOLIC_KEY, JSON.stringify(serializableData));
+        };
+
+        const generateUniqueUserId = () => {
+            const hex = () => Math.floor((1 + Math.random()) * 0x100000000).toString(16).substring(1).toUpperCase();
+            return `USER-${hex()}`;
+        };
+
+        const decrementUsage = (count) => {
+            let data = getLicenseData();
+            data.queriesLeft = Math.max(0, data.queriesLeft - count);
+            
+            const now = new Date(); now.setHours(0,0,0,0);
+            if (data.queriesLeft <= 0 && data.proEnd && data.proEnd < now) {
+                data.maxQueries = QUERIES_FREE_TRIAL;
+                data.proEnd = null;
+            }
+            saveLicenseData(data);
+            checkLicenseStatusAndRender(); 
+        };
+
+        const checkLicenseStatusAndRender = () => {
+            let data = getLicenseData();
+            const now = new Date(); now.setHours(0,0,0,0);
+
+            if (!data.uniqueUserId) {
+                const newUniqueUserId = generateUniqueUserId();
+                data = { uniqueUserId: newUniqueUserId, maxQueries: QUERIES_FREE_TRIAL, queriesLeft: QUERIES_FREE_TRIAL, proEnd: null };
+                saveLicenseData(data);
+            }
+            
+            let isPro = false;
+            let status;
+            const queriesLeft = data.queriesLeft;
+            const maxQueries = data.maxQueries;
+            const proEndDate = data.proEnd;
+            const isCurrentlySubscribed = maxQueries > QUERIES_FREE_TRIAL;
+
+            if (isCurrentlySubscribed && proEndDate && proEndDate >= now) isPro = true;
+            
+            if (queriesLeft > 0) status = 'ACTIVE';
+            else if (isPro) status = 'QUERIES_OVER';
+            else if (maxQueries === QUERIES_FREE_TRIAL) status = 'TRIAL_EXPIRED';
+            else status = 'EXPIRED';
+
+            if (isCurrentlySubscribed && proEndDate && proEndDate < now) {
+                data.maxQueries = QUERIES_FREE_TRIAL;
+                data.proEnd = null;
+                data.queriesLeft = 0;
+                saveLicenseData(data);
+                status = 'EXPIRED';
+            }
+
+            licenseStatus = { uniqueUserId: data.uniqueUserId, maxQueries, queriesLeft, proEnd: proEndDate, isPro, status };
+            renderLicenseUI();
+        };
+
+        const renderLicenseUI = () => {
+            const badgeBtn = document.getElementById('open-license-modal-btn');
+            const badgeIcon = document.getElementById('badge-icon');
+            const badgeText = document.getElementById('badge-text');
+            const inputField = document.getElementById('videoUrl');
+            const generateBtn = document.getElementById('generateBtn');
+            const ctaBox = document.getElementById('cta-box');
+            const ctaTitle = document.getElementById('cta-title');
+            const ctaMessage = document.getElementById('cta-message');
+            const userIdDisplay = document.getElementById('unique-user-id-display');
+
+            const { uniqueUserId, queriesLeft, maxQueries, isPro, status } = licenseStatus;
+
+            userIdDisplay.textContent = uniqueUserId || 'N/A';
+
+            if (status === 'ACTIVE') {
+                const tierName = isPro ? 'Pro' : 'Trial';
+                badgeText.textContent = `${queriesLeft} Credits Left (${tierName})`;
+                badgeIcon.innerHTML = isPro ? '<i data-lucide="crown" class="w-4 h-4 text-yellow-500"></i>' : '<i data-lucide="clock" class="w-4 h-4"></i>';
+                
+                badgeBtn.className = "license-badge flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-200 shadow-sm text-gray-700 hover:bg-gray-50";
+                
+                inputField.disabled = false;
+                inputField.classList.remove('input-disabled');
+                generateBtn.disabled = false;
+                ctaBox.classList.add('hidden');
+            } else {
+                badgeText.textContent = isPro ? 'Limit Reached' : 'Trial Over';
+                badgeIcon.innerHTML = '<i data-lucide="lock" class="w-4 h-4"></i>';
+                badgeBtn.className = "license-badge flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200 border border-red-200";
+
+                inputField.disabled = true;
+                inputField.classList.add('input-disabled');
+                generateBtn.disabled = true;
+                ctaBox.classList.remove('hidden');
+
+                if (status === 'TRIAL_EXPIRED') {
+                    ctaTitle.textContent = "Free Trial Ended";
+                    ctaMessage.innerHTML = "Your Free Trial credits are Over! Please subscribe for Pro Tier starting at <strong>500 Transcripts for $6</strong>. After payment, email us your receipt and Unique User ID.";
+                } else if (status === 'QUERIES_OVER') {
+                    ctaTitle.textContent = "Monthly Limit Reached";
+                    ctaMessage.textContent = `You have used all ${maxQueries} transcripts for this month. Please upgrade your tier.`;
+                } else {
+                    ctaTitle.textContent = "Subscription Expired";
+                    ctaMessage.textContent = "Your subscription period has ended. Please renew to continue.";
+                }
+            }
+            lucide.createIcons(); // Re-render icons
+        };
+
+        // 4. Modal & Payment Logic
+        function initializeTierSelection() {
+            const tierSelect = document.getElementById('tier-select');
+            tierSelect.innerHTML = '';
+            
+            // Sort keys numerically
+            const sortedKeys = Object.keys(SUBSCRIPTION_TIERS).map(Number).sort((a,b)=>a-b);
+            
+            sortedKeys.forEach(queries => {
+                const price = SUBSCRIPTION_TIERS[queries];
+                const option = document.createElement('option');
+                option.value = queries;
+                option.textContent = `${queries.toLocaleString()} Transcripts - $${price.toFixed(2)}`;
+                tierSelect.appendChild(option);
+            });
+            
+            updatePaypalButton();
+        }
+
+        function updatePaypalButton() {
+            const tierSelect = document.getElementById('tier-select');
+            const paypalContainer = document.getElementById('paypal-btn-container');
+            const selectedQueries = tierSelect.value;
+            const selectedPrice = SUBSCRIPTION_TIERS[selectedQueries];
+            
+            if (!selectedQueries) return;
+
+            paypalContainer.innerHTML = `
+                <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                    <input type="hidden" name="cmd" value="_xclick">
+                    <input type="hidden" name="business" value="bhadsuresh@gmail.com">
+                    <input type="hidden" name="item_name" value="${selectedQueries} Transcripts Tier - TubeScript">
+                    <input type="hidden" name="amount" value="${selectedPrice.toFixed(2)}">
+                    <input type="hidden" name="currency_code" value="USD">
+                    <button type="submit" class="w-full bg-[#ffc439] text-gray-900 font-bold py-2 px-4 rounded-md shadow-sm hover:brightness-105 transition flex justify-center items-center gap-2">
+                        <span>Pay with</span> 
+                        <span class="font-extrabold italic text-blue-800">PayPal</span>
+                    </button>
+                </form>
+            `;
+        }
+
+        // License Activation Event
+        document.getElementById('activate-subscription-btn').addEventListener('click', async () => {
+            const licenseKeyInput = document.getElementById('license-key-input');
+            const licenseKey = licenseKeyInput.value.trim();
+            const validationMessage = document.getElementById('validation-message');
+            const activateButton = document.getElementById('activate-subscription-btn');
+
+            if (!licenseKey) {
+                validationMessage.textContent = "Please enter a license key.";
+                validationMessage.className = "mt-2 text-sm text-red-500 font-medium";
+                return;
+            }
+
+            activateButton.disabled = true;
+            activateButton.textContent = 'Validating...';
+            validationMessage.textContent = 'Checking key authenticity...';
+            validationMessage.className = "mt-2 text-sm text-gray-500";
+
+            const activationData = await validateLicenseKey(licenseKey, licenseStatus.uniqueUserId, getSecret());
+            
+            if (activationData) {
+                let data = getLicenseData();
+                data.proEnd = activationData.expiryDate;
+                data.maxQueries = activationData.maxQueries;
+                data.queriesLeft = activationData.maxQueries; // Reset to full capacity
+                saveLicenseData(data);
+                checkLicenseStatusAndRender();
+
+                validationMessage.textContent = `Success! Plan activated: ${activationData.maxQueries} transcripts.`;
+                validationMessage.className = "mt-2 text-sm text-green-600 font-bold";
+                setTimeout(() => {
+                    document.getElementById('license-modal').classList.add('hidden');
+                    licenseKeyInput.value = '';
+                    validationMessage.textContent = '';
+                    activateButton.disabled = false;
+                    activateButton.textContent = 'Activate Subscription';
+                }, 2000);
+            } else {
+                validationMessage.textContent = "Invalid Key. Please check the key, user ID, or expiry.";
+                validationMessage.className = "mt-2 text-sm text-red-600 font-bold";
+                activateButton.disabled = false;
+                activateButton.textContent = 'Activate Subscription';
+            }
+        });
+
+        // Event Listeners for Modal
+        document.getElementById('open-license-modal-btn').addEventListener('click', () => {
+            document.getElementById('license-modal').classList.remove('hidden');
+        });
+
+        // --- Application Functions ---
+
+        function validateYouTubeUrl(url) {
+            const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+            return regex.test(url);
+        }
+
+        function formatTime(seconds) {
+            const date = new Date(0);
+            date.setSeconds(seconds);
+            return date.toISOString().substr(11, 8);
+        }
+
+        function generateSRT(data) {
+            return data.map((item, index) => {
+                const start = formatTime(item.start) + ',000';
+                const end = formatTime(item.start + item.duration) + ',000';
+                return `${index + 1}\n${start} --> ${end}\n${item.text}\n`;
+            }).join('\n');
+        }
+
+        async function generateTranscript() {
+            // LICENSE CHECK START
+            if (licenseStatus.queriesLeft <= 0) {
+                alert("You have no credits left. Please buy your subscription.");
+                return;
+            }
+            // LICENSE CHECK END
+
+            const input = document.getElementById('videoUrl');
+            const errorMsg = document.getElementById('errorMsg');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const resultsArea = document.getElementById('resultsArea');
+            const placeholderState = document.getElementById('placeholderState');
+
+            const url = input.value.trim();
+
+            if (!validateYouTubeUrl(url)) {
+                errorMsg.classList.remove('hidden');
+                input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+                return;
+            } else {
+                errorMsg.classList.add('hidden');
+                input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+            }
+
+            btnText.textContent = 'Processing...';
+            btnLoader.classList.remove('hidden');
+            document.getElementById('generateBtn').disabled = true;
+            
+            try {
+
+		// -------------------------------------------------------------
+                // REAL BACKEND INTEGRATION INSTRUCTIONS:
+                // -------------------------------------------------------------
+                // Replace the setTimeout below with:
+                	const response = await fetch('/api/transcript', {
+                	method: 'POST',
+                	headers: { 'Content-Type': 'application/json' },
+                	body: JSON.stringify({ url: url })
+                	});
+			if (!response.ok) throw new Error('Network response was not ok');
+                	const data = await response.json();
+                	currentData = data.transcript; 
+                // -------------------------------------------------------------
+
+                // Fetch logic (Simulated delay)
+                await new Promise(resolve => setTimeout(resolve, 1500)); 
+                
+
+                // SUCCESS - DEDUCT CREDIT
+                decrementUsage(1);
+
+                placeholderState.classList.add('hidden');
+                resultsArea.classList.remove('hidden');
+                
+                document.getElementById('metaDuration').textContent = "00:00:41";
+                const wordCount = currentData.reduce((acc, curr) => acc + curr.text.split(' ').length, 0);
+                document.getElementById('metaWords').textContent = `${wordCount} words`;
+
+                renderContent();
+
+            } catch (error) {
+                alert('Error fetching transcript. Please try again.');
+                console.error(error);
+            } finally {
+                btnText.textContent = 'Generate';
+                btnLoader.classList.add('hidden');
+                document.getElementById('generateBtn').disabled = false;
+                // Re-check license to update UI immediately if credits hit 0
+                checkLicenseStatusAndRender();
+            }
+        }
+
+        function renderContent() {
+            const container = document.getElementById('outputContent');
+            if (!currentData) return;
+
+            if (activeTab === 'read') {
+                const text = currentData.map(item => item.text).join(' ');
+                container.innerHTML = `<p>${text}</p>`;
+                container.className = "w-full h-full p-6 overflow-y-auto transcript-scroll text-left text-gray-800 leading-8 text-lg whitespace-pre-wrap font-sans";
+            } else if (activeTab === 'srt') {
+                const srt = generateSRT(currentData);
+                container.textContent = srt;
+                container.className = "w-full h-full p-6 overflow-y-auto transcript-scroll text-left text-gray-600 font-mono text-sm whitespace-pre";
+            } else if (activeTab === 'json') {
+                container.textContent = JSON.stringify(currentData, null, 2);
+                container.className = "w-full h-full p-6 overflow-y-auto transcript-scroll text-left text-blue-600 font-mono text-xs whitespace-pre";
+            }
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            ['read', 'srt', 'json'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === activeTab) {
+                    btn.className = "px-4 py-1.5 rounded-md text-sm font-medium bg-white text-red-600 shadow-sm transition-all";
+                } else {
+                    btn.className = "px-4 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-all";
+                }
+            });
+            renderContent();
+        }
+
+        async function copyToClipboard() {
+            const content = document.getElementById('outputContent').textContent;
+            try {
+                await navigator.clipboard.writeText(content);
+                const btn = document.querySelector('button[onclick="copyToClipboard()"]');
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-600"></i>`;
+                setTimeout(() => {
+                    btn.innerHTML = originalIcon;
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+        }
+
+        function downloadFile(type) {
+            if (!currentData) return;
+            let content = '';
+            let filename = 'transcript';
+            let mimeType = 'text/plain';
+
+            if (type === 'txt') {
+                content = currentData.map(item => item.text).join(' ');
+                filename += '.txt';
+            } else if (type === 'srt') {
+                content = generateSRT(currentData);
+                filename += '.srt';
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize App on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTierSelection();
+            checkLicenseStatusAndRender();
+        });
+    </script>
+</body>
+</html>
