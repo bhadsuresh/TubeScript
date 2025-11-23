@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     const rapidApiKey = process.env.RAPIDAPI_KEY; 
-    const rapidApiHost = 'youtube-transcript-api1.p.rapidapi.com'; 
+    const rapidApiHost = 'youtube-transcripts.p.rapidapi.com'; 
 
     const apiUrl = `https://${rapidApiHost}/transcript?videoId=${videoId}`;
     
